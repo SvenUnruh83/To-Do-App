@@ -97,6 +97,7 @@
   .time-row { display: flex; align-items: center; gap: 8px; }
   .time-row input { flex: 1; font-size: 17px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
     background: #faf9f6; color: var(--ink); font-family: inherit; }
+  .tsel { font-size: 18px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #faf9f6; color: var(--ink); font-family: inherit; -webkit-appearance: none; appearance: none; min-width: 64px; text-align: center; }
   .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .days .chip { padding: 10px 0; }
   .card input.text { width: 100%; font-size: 16px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line); background: #faf9f6; color: var(--ink); }
@@ -174,29 +175,23 @@
 
       <div class="card">
         <h3>An welchen Tagen?</h3>
-        <div class="days" id="days"></div>
-      </div>
-
-      <div class="card">
-        <h3>Text der Erinnerung</h3>
-        <input class="text" id="reminderText" type="text" maxlength="80">
+        <div class="presets" id="modes" style="grid-template-columns:1fr 1fr 1fr">
+          <button class="chip" data-mode="daily">Jeden Tag</button>
+          <button class="chip" data-mode="weekdays">Mo – Fr</button>
+          <button class="chip" data-mode="weekend">Sa + So</button>
+        </div>
       </div>
 
       <div class="summary" id="summary"></div>
 
-      <div class="row-btns">
-        <button class="btn" id="installReminders">📅 Im Kalender einrichten</button>
+      <div class="card">
+        <h3>Jetzt im Kalender eintragen</h3>
+        <p class="hint" style="margin:0 0 10px">Tippe nacheinander auf jeden Knopf. Es öffnet sich jeweils eine Kalender-Ansicht. Dort auf <b>„Hinzufügen“</b> bzw. <b>„Alle hinzufügen“</b> tippen und danach zurück zur App.</p>
+        <div class="times" id="addLinks" style="margin-top:0"></div>
       </div>
 
-      <div class="card hint" style="margin-top:14px">
-        <b>So geht's:</b>
-        <ol>
-          <li>Auf <b>„Im Kalender einrichten“</b> tippen.</li>
-          <li>Auf dem iPhone erscheint eine Kalender-Ansicht. Dort auf <b>„Alle hinzufügen“</b> tippen.</li>
-          <li>Fertig: Dein iPhone meldet sich ab jetzt zu den gewählten Zeiten.</li>
-        </ol>
-        <p style="margin:10px 0 0"><b>Zeiten später ändern?</b> Lösche zuerst die alten Erinnerungen im Kalender: Termin öffnen → „Termin löschen“ → „Alle zukünftigen Termine löschen“. Danach hier neu einrichten.</p>
-        <p style="margin:8px 0 0">Falls beim Tippen nichts passiert: Öffne die App einmal in Safari und richte die Erinnerung dort ein.</p>
+      <div class="card hint">
+        <p style="margin:0"><b>Zeiten später ändern?</b> Lösche zuerst die alte Erinnerung im Kalender: Termin öffnen → „Termin löschen“ → „Alle zukünftigen Termine löschen“. Danach hier die neue Uhrzeit eintragen.</p>
       </div>
 
       <button class="btn ghost" id="closeSettings" style="width:100%;margin-top:4px">Schließen</button>
@@ -220,12 +215,17 @@
   }
 
   var todos = load("todos", []);
-  var settings = load("settings", {
-    preset: "2",
-    times: ["08:00", "18:00"],
-    days: [true, true, true, true, true, true, true], // Mo..So
-    text: "Schau auf deine To-Do-Liste! 📋",
-    installedAt: null
+  var settings = load("settings", {});
+  if (!settings || typeof settings !== "object") settings = {};
+  if (!settings.mode) settings.mode = "daily";
+  if (!Array.isArray(settings.times) || !settings.times.length) { settings.times = ["08:00", "18:00"]; settings.preset = "2"; }
+  if (!settings.preset) settings.preset = "custom";
+  if (!settings.added || typeof settings.added !== "object") settings.added = {};
+  // alte Zeiten auf 15-Minuten-Raster runden
+  settings.times = settings.times.map(function (t) {
+    var p = String(t || "08:00").split(":"), h = Math.min(23, Math.max(0, +p[0] || 0)), m = Math.round((+p[1] || 0) / 15) * 15;
+    if (m === 60) { m = 0; h = (h + 1) % 24; }
+    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
   });
 
   var PRESETS = {
@@ -233,8 +233,7 @@
     "2": ["08:00", "18:00"],
     "3": ["08:00", "13:00", "19:00"]
   };
-  var DAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-  var DAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+  var MODE_TEXT = { daily: "jeden Tag", weekdays: "Montag bis Freitag", weekend: "am Wochenende" };
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -319,160 +318,102 @@
   $("closeSettings").onclick = closeSheet;
   $("sheetBg").onclick = closeSheet;
 
+  function saveSettings() { save("settings", settings); }
+
   function sortedTimes() {
     return settings.times.filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
   }
+  function fileFor(tm) { return "ics/" + settings.mode + "-" + tm.replace(":", "") + ".ics"; }
 
-  function renderSettings() {
-    // Presets
+  function makeSelect(values, current, onChange) {
+    var sel = document.createElement("select");
+    sel.className = "tsel";
+    values.forEach(function (v) {
+      var o = document.createElement("option"); o.value = v; o.textContent = v;
+      if (v === current) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.onchange = function () { onChange(sel.value); };
+    return sel;
+  }
+  var HOURS = [], MINS = ["00", "15", "30", "45"];
+  for (var hh = 0; hh < 24; hh++) HOURS.push(String(hh).padStart(2, "0"));
+
+  function renderTimes() {
+    var box = $("times"); box.innerHTML = "";
+    settings.times.forEach(function (tm, i) {
+      var p = tm.split(":");
+      var row = document.createElement("div"); row.className = "time-row";
+      var hSel = makeSelect(HOURS, p[0], function (v) {
+        settings.times[i] = v + ":" + settings.times[i].split(":")[1]; settings.preset = "custom"; afterTimeChange();
+      });
+      var colon = document.createElement("span"); colon.textContent = ":"; colon.style.fontWeight = "600";
+      var mSel = makeSelect(MINS, p[1], function (v) {
+        settings.times[i] = settings.times[i].split(":")[0] + ":" + v; settings.preset = "custom"; afterTimeChange();
+      });
+      var uhr = document.createElement("span"); uhr.textContent = "Uhr"; uhr.style.color = "var(--muted)"; uhr.style.flex = "1";
+      row.appendChild(hSel); row.appendChild(colon); row.appendChild(mSel); row.appendChild(uhr);
+      if (settings.times.length > 1) {
+        var del = document.createElement("button"); del.className = "del"; del.textContent = "×";
+        del.setAttribute("aria-label", "Uhrzeit entfernen");
+        del.onclick = function () { settings.times.splice(i, 1); settings.preset = "custom"; saveSettings(); renderSettings(); };
+        row.appendChild(del);
+      }
+      box.appendChild(row);
+    });
+  }
+
+  // Nach Änderung einer Uhrzeit: Auswahlfelder NICHT neu bauen (sonst klappt die Auswahl auf dem iPhone zu)
+  function afterTimeChange() { saveSettings(); renderPresets(); renderLinks(); }
+
+  function renderPresets() {
     Array.prototype.forEach.call($("presets").children, function (b) {
       b.classList.toggle("on", b.dataset.preset === settings.preset);
       b.onclick = function () {
         settings.preset = b.dataset.preset;
         if (PRESETS[settings.preset]) settings.times = PRESETS[settings.preset].slice();
-        save("settings", settings); renderSettings();
+        saveSettings(); renderSettings();
       };
     });
-    // Uhrzeiten
-    var box = $("times"); box.innerHTML = "";
-    settings.times.forEach(function (tm, i) {
-      var row = document.createElement("div"); row.className = "time-row";
-      var inp = document.createElement("input"); inp.type = "time"; inp.value = tm;
-      inp.onchange = function () { settings.times[i] = inp.value; settings.preset = "custom"; save("settings", settings); renderSettings(); };
-      row.appendChild(inp);
-      if (settings.times.length > 1) {
-        var del = document.createElement("button"); del.className = "del"; del.textContent = "×";
-        del.setAttribute("aria-label", "Uhrzeit entfernen");
-        del.onclick = function () { settings.times.splice(i, 1); settings.preset = "custom"; save("settings", settings); renderSettings(); };
-        row.appendChild(del);
-      }
-      box.appendChild(row);
+    Array.prototype.forEach.call($("modes").children, function (b) {
+      b.classList.toggle("on", b.dataset.mode === settings.mode);
+      b.onclick = function () { settings.mode = b.dataset.mode; saveSettings(); renderPresets(); renderLinks(); };
     });
-    // Tage
-    var dbox = $("days"); dbox.innerHTML = "";
-    DAY_LABELS.forEach(function (lbl, i) {
-      var b = document.createElement("button"); b.className = "chip" + (settings.days[i] ? " on" : ""); b.textContent = lbl;
-      b.onclick = function () { settings.days[i] = !settings.days[i]; save("settings", settings); renderSettings(); };
-      dbox.appendChild(b);
-    });
-    // Text
-    $("reminderText").value = settings.text;
-    // Zusammenfassung
-    $("summary").textContent = summaryText();
   }
+
+  function renderLinks() {
+    var t = sortedTimes();
+    $("summary").textContent = "Erinnerung " + MODE_TEXT[settings.mode] + " um " + t.map(function (x) { return x + " Uhr"; }).join(", ");
+    var box = $("addLinks"); box.innerHTML = "";
+    t.forEach(function (tm) {
+      var f = fileFor(tm);
+      var a = document.createElement("a");
+      a.className = "btn" + (settings.added[f] ? " secondary" : "");
+      a.style.textAlign = "center"; a.style.textDecoration = "none"; a.style.display = "block";
+      a.href = f; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = (settings.added[f] ? "✓ " : "📅 ") + tm + " Uhr hinzufügen";
+      a.onclick = function () {
+        settings.added[f] = Date.now();
+        settings.installedSummary = MODE_TEXT[settings.mode] + " um " + sortedTimes().map(function (x) { return x + " Uhr"; }).join(", ");
+        saveSettings();
+        setTimeout(function () { renderLinks(); renderStatus(); }, 300);
+      };
+      box.appendChild(a);
+    });
+  }
+
+  function renderSettings() { renderPresets(); renderTimes(); renderLinks(); }
 
   $("addTime").onclick = function () {
-    settings.times.push("12:00"); settings.preset = "custom"; save("settings", settings); renderSettings();
+    settings.times.push("12:00"); settings.preset = "custom"; saveSettings(); renderSettings();
   };
-  $("reminderText").oninput = function () { settings.text = this.value; save("settings", settings); };
-
-  function daysText() {
-    var on = settings.days;
-    var count = on.filter(Boolean).length;
-    if (count === 7) return "jeden Tag";
-    if (count === 5 && on.slice(0, 5).every(Boolean)) return "Montag bis Freitag";
-    if (count === 2 && on[5] && on[6]) return "am Wochenende";
-    return DAY_LABELS.filter(function (_, i) { return on[i]; }).join(", ");
-  }
-  function summaryText() {
-    var t = sortedTimes();
-    if (!t.length || !settings.days.some(Boolean)) return "Bitte mindestens eine Uhrzeit und einen Tag wählen.";
-    return "Erinnerung " + daysText() + " um " + t.map(function (x) { return x + " Uhr"; }).join(", ");
-  }
 
   function renderStatus() {
-    $("remindStatus").textContent = settings.installedAt
-      ? "Eingerichtet: " + (settings.installedSummary || "")
+    var any = Object.keys(settings.added || {}).length > 0;
+    $("remindStatus").textContent = any && settings.installedSummary
+      ? "Eingerichtet: " + settings.installedSummary
       : "Noch keine Erinnerung eingerichtet";
   }
-
-  // ---------- Kalender-Datei (.ics) erzeugen ----------
-  function pad(n) { return String(n).padStart(2, "0"); }
-  function fmtLocal(d) {
-    return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "T" + pad(d.getHours()) + pad(d.getMinutes()) + "00";
-  }
-  function fmtUTC(d) {
-    return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T" +
-           pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + "Z";
-  }
-  function esc(s) { return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
-  function fold(line) {
-    // Zeilen nach max. 75 Bytes umbrechen (RFC 5545), ohne Zeichen zu zerteilen
-    var enc = new TextEncoder(), out = [], cur = "", bytes = 0, limit = 75;
-    Array.from(line).forEach(function (ch) {
-      var b = enc.encode(ch).length;
-      if (bytes + b > limit) { out.push(cur); cur = " "; bytes = 1; limit = 75; }
-      cur += ch; bytes += b;
-    });
-    out.push(cur);
-    return out.join("\r\n");
-  }
-
-  function buildICS() {
-    var times = sortedTimes();
-    var now = new Date();
-    var stamp = fmtUTC(now);
-    var appUrl = location.href.split("#")[0].split("?")[0];
-    var activeDays = DAY_CODES.filter(function (_, i) { return settings.days[i]; });
-    var rrule = activeDays.length === 7 ? "RRULE:FREQ=DAILY" : "RRULE:FREQ=WEEKLY;BYDAY=" + activeDays.join(",");
-    var text = settings.text.trim() || "Schau auf deine To-Do-Liste! 📋";
-
-    var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Meine To-Dos//Erinnerung//DE",
-             "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:To-Do Erinnerungen"];
-
-    times.forEach(function (tm) {
-      var hm = tm.split(":"), h = +hm[0], m = +hm[1];
-      // erster passender Tag ab heute (bzw. morgen, wenn die Uhrzeit heute schon vorbei ist)
-      var start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
-      if (start <= now) start.setDate(start.getDate() + 1);
-      for (var k = 0; k < 7; k++) {
-        var idx = (start.getDay() + 6) % 7; // Mo=0
-        if (settings.days[idx]) break;
-        start.setDate(start.getDate() + 1);
-      }
-      var end = new Date(start.getTime() + 5 * 60000);
-      L.push(
-        "BEGIN:VEVENT",
-        "UID:todo-" + pad(h) + pad(m) + "-" + stamp + "@meine-todos",
-        "DTSTAMP:" + stamp,
-        "DTSTART:" + fmtLocal(start),
-        "DTEND:" + fmtLocal(end),
-        rrule,
-        "SUMMARY:" + esc(text),
-        "DESCRIPTION:" + esc("Öffne deine To-Do-Liste: " + appUrl),
-        "URL:" + appUrl,
-        "TRANSP:TRANSPARENT",
-        "BEGIN:VALARM",
-        "ACTION:DISPLAY",
-        "DESCRIPTION:" + esc(text),
-        "TRIGGER:PT0M",
-        "END:VALARM",
-        "END:VEVENT"
-      );
-    });
-    L.push("END:VCALENDAR");
-    return L.map(fold).join("\r\n") + "\r\n";
-  }
-
-  $("installReminders").onclick = function () {
-    if (!sortedTimes().length || !settings.days.some(Boolean)) { toast("Bitte Uhrzeit und Tage wählen"); return; }
-    var ics = buildICS();
-    if (isIOS) {
-      // iPhone: öffnet die Kalender-Ansicht mit "Alle hinzufügen"
-      window.location.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
-    } else {
-      var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "todo-erinnerungen.ics";
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-    }
-    settings.installedAt = Date.now();
-    settings.installedSummary = summaryText().replace(/^Erinnerung /, "");
-    save("settings", settings);
-    renderStatus();
-  };
 
   // ---------- Kleine Meldung ----------
   var toastTimer;
