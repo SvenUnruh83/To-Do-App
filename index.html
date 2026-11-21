@@ -107,6 +107,32 @@
   .summary { font-size: 15px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
   .row-btns { display: flex; gap: 8px; }
   .row-btns .btn { flex: 1; }
+  .step { display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .step .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
+  .step .body { flex: 1; min-width: 0; }
+  .step h3 { font-size: 16px; margin: 4px 0 4px; }
+  .step p { margin: 0 0 8px; font-size: 15px; line-height: 1.45; color: #374151; }
+  .step p:last-child { margin-bottom: 0; }
+  .btn.small { font-size: 15px; padding: 9px 14px; border-radius: 11px; display: inline-block; text-decoration: none; }
+  .copyrow { display: flex; align-items: center; gap: 8px; background: #faf9f6; border: 1px solid var(--line); border-radius: 12px; padding: 8px 8px 8px 12px; }
+  .copyrow span { flex: 1; min-width: 0; font-size: 14px; word-break: break-all; }
+  .mock { background: #f2f2f7; border-radius: 18px; padding: 12px; border: 1px solid #dcdce2; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  .mock-top { display: flex; justify-content: space-between; align-items: center; font-size: 15px; padding: 2px 4px 10px; color: #007aff; }
+  .mock-top b { color: #000; }
+  .mock-top .blue { font-weight: 600; }
+  .mock-group { background: #fff; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .mock-group:last-child { margin-bottom: 0; }
+  .mock-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #ececf0; font-size: 15px; color: #000; }
+  .mock-row:first-child { border-top: 0; }
+  .mock-row.title { font-weight: 500; }
+  .mock-row .ico { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font-size: 15px; }
+  .mock-row .ico.red { background: #ff3b30; } .mock-row .ico.blue-bg { background: #007aff; } .mock-row .ico.grey { background: #8e8e93; }
+  .mock-row .lbl { flex: 1; display: flex; flex-direction: column; }
+  .mock-row .lbl small { color: #007aff; font-size: 13px; }
+  .mock-row .val { color: #8e8e93; }
+  .mock-row .small-url { font-size: 12px; color: #007aff; }
+  .tog { width: 46px; height: 28px; border-radius: 14px; background: #34c759; position: relative; flex: none; }
+  .tog::after { content: ""; position: absolute; right: 2px; top: 2px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
   .toast { position: fixed; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom)); transform: translateX(-50%);
     background: #1f2937; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 15px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
   .toast.show { opacity: 1; }
@@ -148,8 +174,8 @@
 
 <div class="bottom">
   <div class="inner">
-    <button class="btn secondary" id="openSettings">⏰ Erinnerungen einstellen</button>
-    <div class="remind-status" id="remindStatus"></div>
+    <button class="btn secondary" id="openSettings">⏰ Erinnerung einrichten</button>
+    <div class="remind-status">So erinnert dich dein iPhone an deine Liste</div>
   </div>
 </div>
 
@@ -158,40 +184,75 @@
   <div class="sheet" role="dialog" aria-label="Erinnerungen">
     <div class="inner">
       <div class="grab"></div>
-      <h2>Erinnerungen</h2>
-      <p class="lead">Dein iPhone erinnert dich zu den gewählten Zeiten daran, auf deine Liste zu schauen. Das funktioniert über deinen Kalender, also auch, wenn die App geschlossen ist.</p>
+      <h2>Erinnerung einrichten</h2>
+      <p class="lead">Damit dein iPhone dich regelmäßig an deine Liste erinnert, nutzt du die <b>Erinnerungen-App</b>, die schon auf jedem iPhone ist. Das dauert eine Minute und funktioniert immer, auch wenn diese App geschlossen ist.</p>
 
-      <div class="card">
-        <h3>Wie oft?</h3>
-        <div class="presets" id="presets">
-          <button class="chip" data-preset="1">1× täglich</button>
-          <button class="chip" data-preset="2">2× täglich</button>
-          <button class="chip" data-preset="3">3× täglich</button>
-          <button class="chip" data-preset="custom">Eigene Zeiten</button>
-        </div>
-        <div class="times" id="times"></div>
-        <button class="btn ghost" id="addTime" style="margin-top:6px">+ Uhrzeit hinzufügen</button>
-      </div>
-
-      <div class="card">
-        <h3>An welchen Tagen?</h3>
-        <div class="presets" id="modes" style="grid-template-columns:1fr 1fr 1fr">
-          <button class="chip" data-mode="daily">Jeden Tag</button>
-          <button class="chip" data-mode="weekdays">Mo – Fr</button>
-          <button class="chip" data-mode="weekend">Sa + So</button>
+      <div class="step">
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Erinnerungen-App öffnen</h3>
+          <p>Das ist die App mit den bunten Punkten und Strichen.</p>
+          <a class="btn secondary small" href="x-apple-reminderkit://">Erinnerungen-App öffnen</a>
         </div>
       </div>
 
-      <div class="summary" id="summary"></div>
-
-      <div class="card">
-        <h3>Jetzt im Kalender eintragen</h3>
-        <p class="hint" style="margin:0 0 10px">Tippe nacheinander auf jeden Knopf. Es öffnet sich jeweils eine Kalender-Ansicht. Dort auf <b>„Hinzufügen“</b> bzw. <b>„Alle hinzufügen“</b> tippen und danach zurück zur App.</p>
-        <div class="times" id="addLinks" style="margin-top:0"></div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Neue Erinnerung anlegen</h3>
+          <p>Unten links auf <b>„⊕ Neue Erinnerung“</b> tippen und diesen Text einfügen:</p>
+          <div class="copyrow"><span>Schau auf deine To-Do-Liste! 📋</span><button class="btn secondary small" data-copy="Schau auf deine To-Do-Liste! 📋">Kopieren</button></div>
+        </div>
       </div>
 
-      <div class="card hint">
-        <p style="margin:0"><b>Zeiten später ändern?</b> Lösche zuerst die alte Erinnerung im Kalender: Termin öffnen → „Termin löschen“ → „Alle zukünftigen Termine löschen“. Danach hier die neue Uhrzeit eintragen.</p>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Uhrzeit einstellen</h3>
+          <p>Rechts neben der Erinnerung auf das <b>ⓘ</b> tippen. Dann <b>„Datum“</b> und <b>„Uhrzeit“</b> einschalten und die Uhrzeit wählen, z. B. 8:00.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="body">
+          <h3>Wiederholen</h3>
+          <p>Auf <b>„Wiederholen“</b> tippen und <b>„Täglich“</b> wählen. Unter „Eigene“ gehen auch bestimmte Tage, z. B. nur Montag bis Freitag.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">5</div>
+        <div class="body">
+          <h3>Link zu dieser App eintragen</h3>
+          <p>Weiter unten bei <b>„URL“</b> diesen Link einfügen. Dann kommst du aus der Erinnerung mit einem Tipp direkt zu deiner Liste.</p>
+          <div class="copyrow"><span id="appUrl"></span><button class="btn secondary small" id="copyUrl">Kopieren</button></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="num">6</div>
+        <div class="body">
+          <h3>Fertig</h3>
+          <p>Oben rechts auf <b>„Fertig“</b> tippen. So sollte es aussehen:</p>
+        </div>
+      </div>
+
+      <div class="mock">
+        <div class="mock-top"><span>Abbrechen</span><b>Details</b><span class="blue">Fertig</span></div>
+        <div class="mock-group"><div class="mock-row title">Schau auf deine To-Do-Liste! 📋</div></div>
+        <div class="mock-group">
+          <div class="mock-row"><span class="ico red">📅</span><span class="lbl">Datum<small>Täglich</small></span><span class="tog"></span></div>
+          <div class="mock-row"><span class="ico blue-bg">🕗</span><span class="lbl">Uhrzeit<small>08:00</small></span><span class="tog"></span></div>
+          <div class="mock-row"><span class="ico grey">🔁</span><span class="lbl">Wiederholen</span><span class="val">Täglich ›</span></div>
+        </div>
+        <div class="mock-group"><div class="mock-row"><span class="lbl">URL</span><span class="val small-url" id="mockUrl"></span></div></div>
+      </div>
+
+      <div class="card hint" style="margin-top:14px">
+        <p style="margin:0 0 8px"><b>Öfter am Tag erinnert werden?</b> Einfach noch eine Erinnerung genauso anlegen, z. B. für 18:00.</p>
+        <p style="margin:0 0 8px"><b>Uhrzeit später ändern?</b> In der Erinnerungen-App die Erinnerung antippen → ⓘ → Uhrzeit oder „Wiederholen“ ändern. <b>Löschen:</b> nach links wischen.</p>
+        <p style="margin:0"><b>Keine Meldung bekommen?</b> iPhone-Einstellungen → Mitteilungen → Erinnerungen → „Mitteilungen erlauben“ einschalten. Auch prüfen, ob ein Fokus wie „Nicht stören“ an ist.</p>
       </div>
 
       <button class="btn ghost" id="closeSettings" style="width:100%;margin-top:4px">Schließen</button>
@@ -215,26 +276,6 @@
   }
 
   var todos = load("todos", []);
-  var settings = load("settings", {});
-  if (!settings || typeof settings !== "object") settings = {};
-  if (!settings.mode) settings.mode = "daily";
-  if (!Array.isArray(settings.times) || !settings.times.length) { settings.times = ["08:00", "18:00"]; settings.preset = "2"; }
-  if (!settings.preset) settings.preset = "custom";
-  if (!settings.added || typeof settings.added !== "object") settings.added = {};
-  // alte Zeiten auf 15-Minuten-Raster runden
-  settings.times = settings.times.map(function (t) {
-    var p = String(t || "08:00").split(":"), h = Math.min(23, Math.max(0, +p[0] || 0)), m = Math.round((+p[1] || 0) / 15) * 15;
-    if (m === 60) { m = 0; h = (h + 1) % 24; }
-    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
-  });
-
-  var PRESETS = {
-    "1": ["08:00"],
-    "2": ["08:00", "18:00"],
-    "3": ["08:00", "13:00", "19:00"]
-  };
-  var MODE_TEXT = { daily: "jeden Tag", weekdays: "Montag bis Freitag", weekend: "am Wochenende" };
-
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- Kopfzeile ----------
@@ -311,109 +352,37 @@
   if (isIOS && !isStandalone && !load("bannerDismissed", false)) $("installBanner").hidden = false;
   window.dismissBanner = function () { $("installBanner").hidden = true; save("bannerDismissed", true); };
 
-  // ---------- Einstellungen ----------
-  function openSheet() { renderSettings(); $("sheetWrap").classList.add("open"); }
+  // ---------- Anleitung Erinnerung ----------
+  function openSheet() { $("sheetWrap").classList.add("open"); }
   function closeSheet() { $("sheetWrap").classList.remove("open"); }
   $("openSettings").onclick = openSheet;
   $("closeSettings").onclick = closeSheet;
   $("sheetBg").onclick = closeSheet;
 
-  function saveSettings() { save("settings", settings); }
+  var APP_URL = location.protocol === "https:" ? location.href.split("#")[0].split("?")[0] : "https://svenunruh83.github.io/To-Do-App/";
+  $("appUrl").textContent = APP_URL;
+  $("mockUrl").textContent = APP_URL.replace(/^https:\/\//, "");
 
-  function sortedTimes() {
-    return settings.times.filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
+  function copy(text) {
+    function fallback() {
+      var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, text.length);
+      try { document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+    toast("Kopiert ✓ Jetzt in der Erinnerungen-App einfügen");
   }
-  function fileFor(tm) { return "ics/" + settings.mode + "-" + tm.replace(":", "") + ".ics"; }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (b) {
+    b.onclick = function () { copy(b.getAttribute("data-copy")); };
+  });
+  $("copyUrl").onclick = function () { copy(APP_URL); };
 
-  function makeSelect(values, current, onChange) {
-    var sel = document.createElement("select");
-    sel.className = "tsel";
-    values.forEach(function (v) {
-      var o = document.createElement("option"); o.value = v; o.textContent = v;
-      if (v === current) o.selected = true;
-      sel.appendChild(o);
-    });
-    sel.onchange = function () { onChange(sel.value); };
-    return sel;
-  }
-  var HOURS = [], MINS = ["00", "15", "30", "45"];
-  for (var hh = 0; hh < 24; hh++) HOURS.push(String(hh).padStart(2, "0"));
-
-  function renderTimes() {
-    var box = $("times"); box.innerHTML = "";
-    settings.times.forEach(function (tm, i) {
-      var p = tm.split(":");
-      var row = document.createElement("div"); row.className = "time-row";
-      var hSel = makeSelect(HOURS, p[0], function (v) {
-        settings.times[i] = v + ":" + settings.times[i].split(":")[1]; settings.preset = "custom"; afterTimeChange();
-      });
-      var colon = document.createElement("span"); colon.textContent = ":"; colon.style.fontWeight = "600";
-      var mSel = makeSelect(MINS, p[1], function (v) {
-        settings.times[i] = settings.times[i].split(":")[0] + ":" + v; settings.preset = "custom"; afterTimeChange();
-      });
-      var uhr = document.createElement("span"); uhr.textContent = "Uhr"; uhr.style.color = "var(--muted)"; uhr.style.flex = "1";
-      row.appendChild(hSel); row.appendChild(colon); row.appendChild(mSel); row.appendChild(uhr);
-      if (settings.times.length > 1) {
-        var del = document.createElement("button"); del.className = "del"; del.textContent = "×";
-        del.setAttribute("aria-label", "Uhrzeit entfernen");
-        del.onclick = function () { settings.times.splice(i, 1); settings.preset = "custom"; saveSettings(); renderSettings(); };
-        row.appendChild(del);
-      }
-      box.appendChild(row);
-    });
-  }
-
-  // Nach Änderung einer Uhrzeit: Auswahlfelder NICHT neu bauen (sonst klappt die Auswahl auf dem iPhone zu)
-  function afterTimeChange() { saveSettings(); renderPresets(); renderLinks(); }
-
-  function renderPresets() {
-    Array.prototype.forEach.call($("presets").children, function (b) {
-      b.classList.toggle("on", b.dataset.preset === settings.preset);
-      b.onclick = function () {
-        settings.preset = b.dataset.preset;
-        if (PRESETS[settings.preset]) settings.times = PRESETS[settings.preset].slice();
-        saveSettings(); renderSettings();
-      };
-    });
-    Array.prototype.forEach.call($("modes").children, function (b) {
-      b.classList.toggle("on", b.dataset.mode === settings.mode);
-      b.onclick = function () { settings.mode = b.dataset.mode; saveSettings(); renderPresets(); renderLinks(); };
-    });
-  }
-
-  function renderLinks() {
-    var t = sortedTimes();
-    $("summary").textContent = "Erinnerung " + MODE_TEXT[settings.mode] + " um " + t.map(function (x) { return x + " Uhr"; }).join(", ");
-    var box = $("addLinks"); box.innerHTML = "";
-    t.forEach(function (tm) {
-      var f = fileFor(tm);
-      var a = document.createElement("a");
-      a.className = "btn" + (settings.added[f] ? " secondary" : "");
-      a.style.textAlign = "center"; a.style.textDecoration = "none"; a.style.display = "block";
-      a.href = f; a.target = "_blank"; a.rel = "noopener";
-      a.textContent = (settings.added[f] ? "✓ " : "📅 ") + tm + " Uhr hinzufügen";
-      a.onclick = function () {
-        settings.added[f] = Date.now();
-        settings.installedSummary = MODE_TEXT[settings.mode] + " um " + sortedTimes().map(function (x) { return x + " Uhr"; }).join(", ");
-        saveSettings();
-        setTimeout(function () { renderLinks(); renderStatus(); }, 300);
-      };
-      box.appendChild(a);
-    });
-  }
-
-  function renderSettings() { renderPresets(); renderTimes(); renderLinks(); }
-
-  $("addTime").onclick = function () {
-    settings.times.push("12:00"); settings.preset = "custom"; saveSettings(); renderSettings();
-  };
-
-  function renderStatus() {
-    var any = Object.keys(settings.added || {}).length > 0;
-    $("remindStatus").textContent = any && settings.installedSummary
-      ? "Eingerichtet: " + settings.installedSummary
-      : "Noch keine Erinnerung eingerichtet";
-  }
+  function renderStatus() {}
 
   // ---------- Kleine Meldung ----------
   var toastTimer;
