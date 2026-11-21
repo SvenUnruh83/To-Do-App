@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meine To-Dos</title>
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="To-Dos">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --card: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #e7e3da;
+    --accent: #0f766e;
+    --accent-soft: #e0f2ef;
+    --danger: #b91c1c;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    font-size: 17px; }
+  body { padding: env(safe-area-inset-top) 0 calc(96px + env(safe-area-inset-bottom)); }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 20px 18px; }
+
+  header h1 { font-size: 32px; margin: 8px 0 2px; letter-spacing: -0.5px; }
+  header .sub { color: var(--muted); font-size: 15px; }
+  .counter { display: inline-block; margin-top: 10px; background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; font-size: 14px; padding: 5px 12px; border-radius: 999px; }
+
+  .banner { background: #fff7e6; border: 1px solid #f5deb0; border-radius: var(--radius);
+    padding: 12px 14px; font-size: 15px; margin: 16px 0 0; display: flex; gap: 10px; align-items: flex-start; }
+  .banner button { margin-left: auto; background: none; border: 0; font-size: 20px; color: var(--muted); padding: 0 4px; }
+
+  .add { display: flex; gap: 8px; margin: 20px 0 14px; }
+  .add input { flex: 1; font-size: 17px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); outline: none; }
+  .add input:focus { border-color: var(--accent); }
+  .btn { background: var(--accent); color: #fff; border: 0; border-radius: 14px; font-size: 17px; font-weight: 600;
+    padding: 14px 18px; cursor: pointer; }
+  .btn:active { transform: scale(0.98); }
+  .btn.secondary { background: var(--accent-soft); color: var(--accent); }
+  .btn.ghost { background: none; color: var(--muted); font-weight: 500; padding: 10px 8px; font-size: 15px; }
+
+  ul.list { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--line); overflow: hidden; }
+  ul.list:empty { display: none; }
+  ul.list li { display: flex; align-items: center; gap: 12px; padding: 14px 14px; border-top: 1px solid var(--line); }
+  ul.list li:first-child { border-top: 0; }
+  .check { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #c9c3b6; background: none;
+    display: grid; place-items: center; cursor: pointer; padding: 0; }
+  .check svg { width: 14px; height: 14px; opacity: 0; }
+  li.done .check { background: var(--accent); border-color: var(--accent); }
+  li.done .check svg { opacity: 1; }
+  .txt { flex: 1; word-break: break-word; line-height: 1.35; }
+  li.done .txt { color: var(--muted); text-decoration: line-through; }
+  .del { flex: none; background: none; border: 0; color: #b6afa1; font-size: 22px; line-height: 1; padding: 4px 6px; cursor: pointer; }
+
+  .empty { text-align: center; color: var(--muted); padding: 36px 10px; }
+  .empty .big { font-size: 40px; margin-bottom: 8px; }
+
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin: 26px 2px 8px; }
+  .section-head h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin: 0; font-weight: 600; }
+
+  .bottom { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, rgba(246,244,239,0)); }
+  .bottom .inner { max-width: 560px; margin: 0 auto; }
+  .bottom .btn { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .remind-status { text-align: center; font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* Einstellungen */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow-y: auto; background: var(--bg);
+    border-radius: 22px 22px 0 0; transform: translateY(100%); transition: transform .25s ease;
+    padding: 10px 18px calc(24px + env(safe-area-inset-bottom)); }
+  .open .sheet-bg { opacity: 1; pointer-events: auto; }
+  .open .sheet { transform: none; }
+  .sheet .inner { max-width: 560px; margin: 0 auto; }
+  .grab { width: 40px; height: 5px; background: #d6d0c4; border-radius: 3px; margin: 4px auto 10px; }
+  .sheet h2 { font-size: 24px; margin: 6px 0 4px; }
+  .sheet p.lead { color: var(--muted); margin: 0 0 16px; font-size: 15px; line-height: 1.4; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+  .card h3 { font-size: 16px; margin: 0 0 10px; }
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: #faf9f6; color: var(--ink); border-radius: 12px; padding: 11px 10px;
+    font-size: 15px; cursor: pointer; text-align: center; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .times { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .time-row { display: flex; align-items: center; gap: 8px; }
+  .time-row input { flex: 1; font-size: 17px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+    background: #faf9f6; color: var(--ink); font-family: inherit; }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .days .chip { padding: 10px 0; }
+  .card input.text { width: 100%; font-size: 16px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line); background: #faf9f6; color: var(--ink); }
+  .hint { font-size: 14px; color: var(--muted); line-height: 1.45; }
+  .hint ol { margin: 6px 0 0; padding-left: 20px; }
+  .hint li { margin: 3px 0; }
+  .summary { font-size: 15px; background: var(--accent-soft); color: var(--accent); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+  .row-btns { display: flex; gap: 8px; }
+  .row-btns .btn { flex: 1; }
+  .toast { position: fixed; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: #1f2937; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 15px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Meine To-Dos</h1>
+    <div class="sub" id="today"></div>
+    <div class="counter" id="counter">0 offen</div>
+  </header>
+
+  <div class="banner" id="installBanner" hidden>
+    <span>📲</span>
+    <span><b>Tipp:</b> Tippe unten auf <b>Teilen</b> (Quadrat mit Pfeil) und dann auf <b>„Zum Home-Bildschirm“</b>. Dann hast du die App als Symbol auf dem iPhone.</span>
+    <button aria-label="Schließen" onclick="dismissBanner()">×</button>
+  </div>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="newTask" type="text" placeholder="Was musst du erledigen?" enterkeyhint="done" maxlength="200">
+    <button class="btn" type="submit">+</button>
+  </form>
+
+  <ul class="list" id="openList"></ul>
+  <div class="empty" id="emptyState" hidden>
+    <div class="big">🎉</div>
+    Alles erledigt! Trag oben etwas Neues ein.
+  </div>
+
+  <div id="doneSection" hidden>
+    <div class="section-head">
+      <h2 id="doneTitle">Erledigt</h2>
+      <button class="btn ghost" id="clearDone">Erledigte löschen</button>
+    </div>
+    <ul class="list" id="doneList"></ul>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="inner">
+    <button class="btn secondary" id="openSettings">⏰ Erinnerungen einstellen</button>
+    <div class="remind-status" id="remindStatus"></div>
+  </div>
+</div>
+
+<div id="sheetWrap">
+  <div class="sheet-bg" id="sheetBg"></div>
+  <div class="sheet" role="dialog" aria-label="Erinnerungen">
+    <div class="inner">
+      <div class="grab"></div>
+      <h2>Erinnerungen</h2>
+      <p class="lead">Dein iPhone erinnert dich zu den gewählten Zeiten daran, auf deine Liste zu schauen. Das funktioniert über deinen Kalender, also auch, wenn die App geschlossen ist.</p>
+
+      <div class="card">
+        <h3>Wie oft?</h3>
+        <div class="presets" id="presets">
+          <button class="chip" data-preset="1">1× täglich</button>
+          <button class="chip" data-preset="2">2× täglich</button>
+          <button class="chip" data-preset="3">3× täglich</button>
+          <button class="chip" data-preset="custom">Eigene Zeiten</button>
+        </div>
+        <div class="times" id="times"></div>
+        <button class="btn ghost" id="addTime" style="margin-top:6px">+ Uhrzeit hinzufügen</button>
+      </div>
+
+      <div class="card">
+        <h3>An welchen Tagen?</h3>
+        <div class="days" id="days"></div>
+      </div>
+
+      <div class="card">
+        <h3>Text der Erinnerung</h3>
+        <input class="text" id="reminderText" type="text" maxlength="80">
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="row-btns">
+        <button class="btn" id="installReminders">📅 Im Kalender einrichten</button>
+      </div>
+
+      <div class="card hint" style="margin-top:14px">
+        <b>So geht's:</b>
+        <ol>
+          <li>Auf <b>„Im Kalender einrichten“</b> tippen.</li>
+          <li>Auf dem iPhone erscheint eine Kalender-Ansicht. Dort auf <b>„Alle hinzufügen“</b> tippen.</li>
+          <li>Fertig: Dein iPhone meldet sich ab jetzt zu den gewählten Zeiten.</li>
+        </ol>
+        <p style="margin:10px 0 0"><b>Zeiten später ändern?</b> Lösche zuerst die alten Erinnerungen im Kalender: Termin öffnen → „Termin löschen“ → „Alle zukünftigen Termine löschen“. Danach hier neu einrichten.</p>
+        <p style="margin:8px 0 0">Falls beim Tippen nichts passiert: Öffne die App einmal in Safari und richte die Erinnerung dort ein.</p>
+      </div>
+
+      <button class="btn ghost" id="closeSettings" style="width:100%;margin-top:4px">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Speicher ----------
+  function load(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  var todos = load("todos", []);
+  var settings = load("settings", {
+    preset: "2",
+    times: ["08:00", "18:00"],
+    days: [true, true, true, true, true, true, true], // Mo..So
+    text: "Schau auf deine To-Do-Liste! 📋",
+    installedAt: null
+  });
+
+  var PRESETS = {
+    "1": ["08:00"],
+    "2": ["08:00", "18:00"],
+    "3": ["08:00", "13:00", "19:00"]
+  };
+  var DAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  var DAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- Kopfzeile ----------
+  $("today").textContent = new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
+
+  // ---------- To-Do-Liste ----------
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  function itemEl(t) {
+    var li = document.createElement("li");
+    if (t.done) li.className = "done";
+    var c = document.createElement("button");
+    c.className = "check"; c.innerHTML = CHECK_SVG;
+    c.setAttribute("aria-label", t.done ? "Als offen markieren" : "Als erledigt markieren");
+    c.onclick = function () { toggle(t.id); };
+    var s = document.createElement("span");
+    s.className = "txt"; s.textContent = t.text;
+    var d = document.createElement("button");
+    d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", "Löschen");
+    d.onclick = function () { remove(t.id); };
+    li.appendChild(c); li.appendChild(s); li.appendChild(d);
+    return li;
+  }
+
+  function render() {
+    var open = todos.filter(function (t) { return !t.done; });
+    var done = todos.filter(function (t) { return t.done; });
+    var ol = $("openList"), dl = $("doneList");
+    ol.innerHTML = ""; dl.innerHTML = "";
+    open.forEach(function (t) { ol.appendChild(itemEl(t)); });
+    done.forEach(function (t) { dl.appendChild(itemEl(t)); });
+    $("emptyState").hidden = open.length > 0;
+    $("doneSection").hidden = done.length === 0;
+    $("doneTitle").textContent = "Erledigt (" + done.length + ")";
+    $("counter").textContent = open.length === 0 ? "Alles erledigt ✓" : open.length + " offen";
+    renderStatus();
+  }
+
+  function persist() { save("todos", todos); render(); }
+
+  function add(text) {
+    text = text.trim();
+    if (!text) return;
+    todos.unshift({ id: uid(), text: text, done: false, created: Date.now() });
+    persist();
+  }
+  function toggle(id) {
+    todos.forEach(function (t) { if (t.id === id) { t.done = !t.done; t.doneAt = t.done ? Date.now() : null; } });
+    persist();
+  }
+  function remove(id) {
+    todos = todos.filter(function (t) { return t.id !== id; });
+    persist();
+  }
+
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    add($("newTask").value);
+    $("newTask").value = "";
+    $("newTask").focus();
+  });
+  $("clearDone").onclick = function () {
+    todos = todos.filter(function (t) { return !t.done; });
+    persist();
+  };
+
+  // ---------- Hinweis "Zum Home-Bildschirm" ----------
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isStandalone = window.navigator.standalone === true ||
+              (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  if (isIOS && !isStandalone && !load("bannerDismissed", false)) $("installBanner").hidden = false;
+  window.dismissBanner = function () { $("installBanner").hidden = true; save("bannerDismissed", true); };
+
+  // ---------- Einstellungen ----------
+  function openSheet() { renderSettings(); $("sheetWrap").classList.add("open"); }
+  function closeSheet() { $("sheetWrap").classList.remove("open"); }
+  $("openSettings").onclick = openSheet;
+  $("closeSettings").onclick = closeSheet;
+  $("sheetBg").onclick = closeSheet;
+
+  function sortedTimes() {
+    return settings.times.filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort();
+  }
+
+  function renderSettings() {
+    // Presets
+    Array.prototype.forEach.call($("presets").children, function (b) {
+      b.classList.toggle("on", b.dataset.preset === settings.preset);
+      b.onclick = function () {
+        settings.preset = b.dataset.preset;
+        if (PRESETS[settings.preset]) settings.times = PRESETS[settings.preset].slice();
+        save("settings", settings); renderSettings();
+      };
+    });
+    // Uhrzeiten
+    var box = $("times"); box.innerHTML = "";
+    settings.times.forEach(function (tm, i) {
+      var row = document.createElement("div"); row.className = "time-row";
+      var inp = document.createElement("input"); inp.type = "time"; inp.value = tm;
+      inp.onchange = function () { settings.times[i] = inp.value; settings.preset = "custom"; save("settings", settings); renderSettings(); };
+      row.appendChild(inp);
+      if (settings.times.length > 1) {
+        var del = document.createElement("button"); del.className = "del"; del.textContent = "×";
+        del.setAttribute("aria-label", "Uhrzeit entfernen");
+        del.onclick = function () { settings.times.splice(i, 1); settings.preset = "custom"; save("settings", settings); renderSettings(); };
+        row.appendChild(del);
+      }
+      box.appendChild(row);
+    });
+    // Tage
+    var dbox = $("days"); dbox.innerHTML = "";
+    DAY_LABELS.forEach(function (lbl, i) {
+      var b = document.createElement("button"); b.className = "chip" + (settings.days[i] ? " on" : ""); b.textContent = lbl;
+      b.onclick = function () { settings.days[i] = !settings.days[i]; save("settings", settings); renderSettings(); };
+      dbox.appendChild(b);
+    });
+    // Text
+    $("reminderText").value = settings.text;
+    // Zusammenfassung
+    $("summary").textContent = summaryText();
+  }
+
+  $("addTime").onclick = function () {
+    settings.times.push("12:00"); settings.preset = "custom"; save("settings", settings); renderSettings();
+  };
+  $("reminderText").oninput = function () { settings.text = this.value; save("settings", settings); };
+
+  function daysText() {
+    var on = settings.days;
+    var count = on.filter(Boolean).length;
+    if (count === 7) return "jeden Tag";
+    if (count === 5 && on.slice(0, 5).every(Boolean)) return "Montag bis Freitag";
+    if (count === 2 && on[5] && on[6]) return "am Wochenende";
+    return DAY_LABELS.filter(function (_, i) { return on[i]; }).join(", ");
+  }
+  function summaryText() {
+    var t = sortedTimes();
+    if (!t.length || !settings.days.some(Boolean)) return "Bitte mindestens eine Uhrzeit und einen Tag wählen.";
+    return "Erinnerung " + daysText() + " um " + t.map(function (x) { return x + " Uhr"; }).join(", ");
+  }
+
+  function renderStatus() {
+    $("remindStatus").textContent = settings.installedAt
+      ? "Eingerichtet: " + (settings.installedSummary || "")
+      : "Noch keine Erinnerung eingerichtet";
+  }
+
+  // ---------- Kalender-Datei (.ics) erzeugen ----------
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function fmtLocal(d) {
+    return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "T" + pad(d.getHours()) + pad(d.getMinutes()) + "00";
+  }
+  function fmtUTC(d) {
+    return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T" +
+           pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + "Z";
+  }
+  function esc(s) { return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); }
+  function fold(line) {
+    // Zeilen nach max. 75 Bytes umbrechen (RFC 5545), ohne Zeichen zu zerteilen
+    var enc = new TextEncoder(), out = [], cur = "", bytes = 0, limit = 75;
+    Array.from(line).forEach(function (ch) {
+      var b = enc.encode(ch).length;
+      if (bytes + b > limit) { out.push(cur); cur = " "; bytes = 1; limit = 75; }
+      cur += ch; bytes += b;
+    });
+    out.push(cur);
+    return out.join("\r\n");
+  }
+
+  function buildICS() {
+    var times = sortedTimes();
+    var now = new Date();
+    var stamp = fmtUTC(now);
+    var appUrl = location.href.split("#")[0].split("?")[0];
+    var activeDays = DAY_CODES.filter(function (_, i) { return settings.days[i]; });
+    var rrule = activeDays.length === 7 ? "RRULE:FREQ=DAILY" : "RRULE:FREQ=WEEKLY;BYDAY=" + activeDays.join(",");
+    var text = settings.text.trim() || "Schau auf deine To-Do-Liste! 📋";
+
+    var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Meine To-Dos//Erinnerung//DE",
+             "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:To-Do Erinnerungen"];
+
+    times.forEach(function (tm) {
+      var hm = tm.split(":"), h = +hm[0], m = +hm[1];
+      // erster passender Tag ab heute (bzw. morgen, wenn die Uhrzeit heute schon vorbei ist)
+      var start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+      if (start <= now) start.setDate(start.getDate() + 1);
+      for (var k = 0; k < 7; k++) {
+        var idx = (start.getDay() + 6) % 7; // Mo=0
+        if (settings.days[idx]) break;
+        start.setDate(start.getDate() + 1);
+      }
+      var end = new Date(start.getTime() + 5 * 60000);
+      L.push(
+        "BEGIN:VEVENT",
+        "UID:todo-" + pad(h) + pad(m) + "-" + stamp + "@meine-todos",
+        "DTSTAMP:" + stamp,
+        "DTSTART:" + fmtLocal(start),
+        "DTEND:" + fmtLocal(end),
+        rrule,
+        "SUMMARY:" + esc(text),
+        "DESCRIPTION:" + esc("Öffne deine To-Do-Liste: " + appUrl),
+        "URL:" + appUrl,
+        "TRANSP:TRANSPARENT",
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        "DESCRIPTION:" + esc(text),
+        "TRIGGER:PT0M",
+        "END:VALARM",
+        "END:VEVENT"
+      );
+    });
+    L.push("END:VCALENDAR");
+    return L.map(fold).join("\r\n") + "\r\n";
+  }
+
+  $("installReminders").onclick = function () {
+    if (!sortedTimes().length || !settings.days.some(Boolean)) { toast("Bitte Uhrzeit und Tage wählen"); return; }
+    var ics = buildICS();
+    if (isIOS) {
+      // iPhone: öffnet die Kalender-Ansicht mit "Alle hinzufügen"
+      window.location.href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics);
+    } else {
+      var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "todo-erinnerungen.ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    }
+    settings.installedAt = Date.now();
+    settings.installedSummary = summaryText().replace(/^Erinnerung /, "");
+    save("settings", settings);
+    renderStatus();
+  };
+
+  // ---------- Kleine Meldung ----------
+  var toastTimer;
+  function toast(msg) {
+    var el = $("toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2200);
+  }
+
+  // ---------- Offline-Fähigkeit ----------
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
